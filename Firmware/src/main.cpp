@@ -1,18 +1,21 @@
 #include <Arduino.h>
+#include "sensorData.h"
 
 // put function declarations here:
-int myFunction(int, int);
 
 void setup() {
   // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  //Wire.begin();
+  Serial.begin(9600);
+  SetupSensor();
+
+  DDRC = 0;
+  DDRC |= (1 << PC7);
+  PORTC &= ~(1<<PC7);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+  UpdateSensor();
+  Serial.print(GetMagnitude());
 }
