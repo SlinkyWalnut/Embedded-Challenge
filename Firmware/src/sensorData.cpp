@@ -4,16 +4,15 @@
 
 int x, y, z;
 
-void SetupSensor(){
-    Wire.beginTransmission(SENSOR_ADDRESS);
-    Wire.write(0x2D); // Power Control Register
-    Wire.write(0x08); // Measure mode (bit 3 set to 1)
-    Wire.endTransmission();
-
-    Wire.beginTransmission(SENSOR_ADDRESS);
-    Wire.write(0x31); // Data Format Register
-    Wire.write(0x08); // Full resolution, +/-16g (adjust as needed)
-    Wire.endTransmission();
+void SetupSensor(Adafruit_ADXL345_Unified accel){
+  
+    if(!accel.begin(0x53))
+  {
+    /* There was a problem detecting the ADXL345 ... check your connections */
+    Serial.println("Ooops, no ADXL345 detected ... Check your wiring!");
+    while(1);
+  }
+    accel.setRange(ADXL345_RANGE_4_G);
 }
 
 void UpdateSensor(){
