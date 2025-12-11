@@ -10,16 +10,19 @@ void setup() {
   
   #ifndef ESP8266
   while (!Serial); // for Leonardo/Micro/Zero
-#endif
+  #endif
   Serial.begin(9600);
-  SetupSensor(accel);
+  Serial.println("Accelerometer Test"); Serial.println("");
   
-
-  
-}
-
-void loop(void) {
-  
+  /* Initialise the sensor */
+  if(!accel.begin())
+  {
+    /* There was a problem detecting the ADXL345 ... check your connections */
+    Serial.println("Ooops, no ADXL345 detected ... Check your wiring!");
+    while(1);
+  }
+  accel.setRange(ADXL345_RANGE_4_G);
+  accel.setDataRate(ADXL345_DATARATE_100_HZ);
   sensor_t sensor;
   accel.getSensor(&sensor);
   Serial.println("------------------------------------");
@@ -32,13 +35,18 @@ void loop(void) {
   Serial.println("------------------------------------");
   Serial.println("");
   delay(500);
-  // sensors_event_t event; 
-  // Serial.print("1");
-  // accel.getEvent(&event);
+
+  
+}
+sensors_event_t event; 
+void loop(void) {
+  
+  
+  accel.getEvent(&event);
  
-  // /* Display the results (acceleration is measured in m/s^2) */
-  // Serial.print("X: "); Serial.print(event.acceleration.x); Serial.print("  ");
-  // Serial.print("Y: "); Serial.print(event.acceleration.y); Serial.print("  ");
-  // Serial.print("Z: "); Serial.print(event.acceleration.z); Serial.print("  ");Serial.println("m/s^2 ");
-  delay(500);
+  /* Display the results (acceleration is measured in m/s^2) */
+  Serial.print("X: "); Serial.print(accel.getX()); Serial.print("  ");
+  Serial.print("Y: "); Serial.print(accel.getY()); Serial.print("  ");
+  Serial.print("Z: "); Serial.print(event.acceleration.z); Serial.print("  ");Serial.println("m/s^2 ");
+  delay(100);
 }

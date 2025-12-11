@@ -4,23 +4,13 @@
 
 int x, y, z;
 
-void SetupSensor(Adafruit_ADXL345_Unified accel){
-  
-    if(!accel.begin(0x53))
-  {
-    /* There was a problem detecting the ADXL345 ... check your connections */
-    Serial.println("Ooops, no ADXL345 detected ... Check your wiring!");
-    while(1);
-  }
-    accel.setRange(ADXL345_RANGE_4_G);
-}
-
 void UpdateSensor(){
     // Initialize ADXL345
   Wire.beginTransmission(SENSOR_ADDRESS);
   Wire.write(0x32); // Start from DATAX0
   Wire.endTransmission();
   Wire.requestFrom(SENSOR_ADDRESS, 2);
+
   if (Wire.available() == 2) {
     int x_lsb = Wire.read();
     int x_msb = Wire.read();
