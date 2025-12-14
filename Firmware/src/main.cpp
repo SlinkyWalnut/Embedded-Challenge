@@ -29,6 +29,15 @@ byte readRegister(char reg);
 void isr_twitch();
 void TakeSample();
 float getMagnitude();
+float getPeakFrequency(float vReal[], int bins, float fs);
+void insertToBuffer(bool recent);
+bool detectDiskinesiaFromFFT(float peakFreq);
+bool detectTremorsFromFFT(float peakFreq);
+bool Tremor();
+
+bool TremorBuffer[3] = {false, false, false};
+int bufferPointer = 0;
+
 
 /* Feature functions */
 bool detectDiskinesiaFromFFT(float vReal[], int bins, float fs, float& peakFreq);
@@ -142,8 +151,10 @@ void TakeSample() {
     FFT.complexToMagnitude();
 
     /* ---------- Feature extraction ---------- */
-    diskinesia = detectDiskinesiaFromFFT(vReal, FFT_SIZE / 2,
-                                         FFT_SAMPLING_FREQUENCY, peak_freq);
+    peak_freq = getPeakFrequency(vReal, FFT_SIZE / 2,
+                                         FFT_SAMPLING_FREQUENCY);
+    diskinesia = detectDiskinesiaFromFFT(peak_freq);
+    insertToBuffer(detectTremorsFromFFT(peak_freq));
 
     computeBandPercentagesFromFFT(vReal, FFT_SIZE / 2,
                                   FFT_SAMPLING_FREQUENCY,
@@ -154,7 +165,8 @@ void TakeSample() {
     Serial.print(peak_freq, 2);
     Serial.print(" Hz | Diskinesia: ");
     Serial.println(diskinesia ? "TRUE" : "FALSE");
-
+    Serial.print("Tremor: ");
+    Serial.println(Tremor() ? "TRUE" : "FALSE");
     Serial.print("Tremor % (3–5 Hz): ");
     Serial.print(tremor_perc, 1);
     Serial.print(" | Disc % (5–7 Hz): ");
@@ -166,21 +178,42 @@ void TakeSample() {
 
 /* ================= Feature functions ================= */
 
-bool detectDiskinesiaFromFFT(float vReal[], int bins, float fs, float& peakFreq) {
-
+float getPeakFrequency(float vReal[], int bins, float fs){
   float maxAmp = 0.0f;
-  peakFreq = 0.0f;
+  float peakFreq = 0.0f;
 
   for (int i = 1; i < bins; i++) {
     float freq = (i * fs) / FFT_SIZE;
 
     if (vReal[i] > maxAmp) {
       maxAmp = vReal[i];
-      peak_freq = freq;
+      peakFreq = freq;
     }
   }
+  return peakFreq;
+}
 
+bool detectDiskinesiaFromFFT(float peakFreq) {
   return (peakFreq >= 5.0f && peakFreq <= 7.0f);
+}
+
+bool detectTremorsFromFFT(float peakFreq){
+  return (peakFreq >= 5.0f && peakFreq <= 7.0f);
+}
+
+void insertToBuffer(bool recent){
+  TremorBuffer[bufferPointer] = recent;
+  bufferPointer++;
+  bufferPointer %=3;
+}
+
+bool Tremor(){
+  for(int i = 0; i < 3; i++){
+    if(TremorBuffer[i] == false){
+      return false;
+    }
+  }
+  return true;
 }
 
 void computeBandPercentagesFromFFT(float vReal[], int bins, float fs,
