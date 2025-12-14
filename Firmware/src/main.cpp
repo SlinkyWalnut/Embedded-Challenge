@@ -28,6 +28,7 @@ void writeRegister(char reg, char value);
 byte readRegister(char reg);
 void isr_twitch();
 void TakeSample();
+float getMagnitude();
 
 /* Feature functions */
 bool detectDiskinesiaFromFFT(float vReal[], int bins, float fs, float& peakFreq);
@@ -230,8 +231,15 @@ byte readRegister(char reg) {
   return Wire.read();
 }
 
+float getMagnitude(){
+  accel.getEvent(&event);
+
+  float x = event.acceleration.x;
+  float y = event.acceleration.y;
+  float z = event.acceleration.z;
+  return sqrt(x*x + y*y + z*z) - 9.80665f
+}
 /* ================= ISR ================= */
 void isr_twitch() {
   motionDetected = true;
 }
-
