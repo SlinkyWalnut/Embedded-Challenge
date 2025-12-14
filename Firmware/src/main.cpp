@@ -20,6 +20,7 @@
 void writeRegister(char reg, char value);
 byte readRegister(char reg);
 void isr_twitch();
+void TakeSample();
 
 // -------- globals --------
 float magnitude[SAMPLE_COUNT];
@@ -88,9 +89,35 @@ void loop() {
   }
 
   /* ---------- sampling ---------- */
-  if (sampling) {
-    unsigned long now = millis();
+  TakeSample();
+}
 
+// -------- low-level I2C helpers --------
+
+void writeRegister(char reg, char value) {
+  Wire.beginTransmission(0x53);
+  Wire.write(reg);
+  Wire.write(value);
+  Wire.endTransmission();
+}
+
+byte readRegister(char reg) {
+  Wire.beginTransmission(0x53);
+  Wire.write(reg);
+  Wire.endTransmission();
+  Wire.requestFrom(0x53, 1);
+  return Wire.read();
+}
+
+// -------- ISR --------
+
+void isr_twitch() {
+  cli();
+  motionDetected = true;
+}
+
+void TakeSample(){
+unsigned long now = millis();
     if (now - lastSampleTime >= SAMPLE_PERIOD_MS) {
       lastSampleTime += SAMPLE_PERIOD_MS;
 
@@ -118,28 +145,4 @@ void loop() {
         Serial.println(">> Ready for next trigger <<\n");
       }
     }
-  }
-}
-
-// -------- low-level I2C helpers --------
-
-void writeRegister(char reg, char value) {
-  Wire.beginTransmission(0x53);
-  Wire.write(reg);
-  Wire.write(value);
-  Wire.endTransmission();
-}
-
-byte readRegister(char reg) {
-  Wire.beginTransmission(0x53);
-  Wire.write(reg);
-  Wire.endTransmission();
-  Wire.requestFrom(0x53, 1);
-  return Wire.read();
-}
-
-// -------- ISR --------
-
-void isr_twitch() {
-  motionDetected = true;
 }
