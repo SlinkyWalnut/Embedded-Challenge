@@ -14,6 +14,7 @@
 #define SAMPLE_RATE_HZ     100
 #define SAMPLE_PERIOD_MS  10
 #define SAMPLE_COUNT      300   // 3 seconds * 100 Hz
+#define ADXL_INT_PIN 1
 
 // -------- function prototypes --------
 void writeRegister(char reg, char value);
@@ -62,8 +63,8 @@ void setup() {
   // Enable Activity interrupt
   writeRegister(ADXL345_REG_INT_ENABLE, 0x10);
 
-  pinMode(2, INPUT);
-  attachInterrupt(digitalPinToInterrupt(2), isr_twitch, RISING);
+  pinMode(ADXL_INT_PIN, INPUT);
+  attachInterrupt(digitalPinToInterrupt(ADXL_INT_PIN), isr_twitch, RISING);
 
   // Clear pending interrupts
   readRegister(ADXL345_REG_INT_SOURCE);
