@@ -40,7 +40,6 @@ int bufferPointer = 0;
 
 
 /* Feature functions */
-bool detectDiskinesiaFromFFT(float vReal[], int bins, float fs, float& peakFreq);
 void computeBandPercentagesFromFFT(float vReal[], int bins, float fs,
                                    float& tremor_perc, float& disc_perc);
 
@@ -198,7 +197,7 @@ bool detectDiskinesiaFromFFT(float peakFreq) {
 }
 
 bool detectTremorsFromFFT(float peakFreq){
-  return (peakFreq >= 5.0f && peakFreq <= 7.0f);
+  return (peakFreq >= 3.0f && peakFreq <= 5.0f);
 }
 
 void insertToBuffer(bool recent){
