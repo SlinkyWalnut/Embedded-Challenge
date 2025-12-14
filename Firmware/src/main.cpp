@@ -173,12 +173,9 @@ bool detectDiskinesiaFromFFT(float vReal[], int bins, float fs, float& peakFreq)
 
   for (int i = 1; i < bins; i++) {
     float freq = (i * fs) / FFT_SIZE;
-    if (freq > 10.0f) break;
 
     if (vReal[i] > maxAmp) {
       maxAmp = vReal[i];
-    }
-    if(peak_freq < freq){
       peak_freq = freq;
     }
   }
@@ -239,7 +236,7 @@ float getMagnitude(){
   float x = event.acceleration.x;
   float y = event.acceleration.y;
   float z = event.acceleration.z;
-  return sqrt(x*x + y*y + z*z) - 9.80665f;
+  return sqrt(x*x + y*y + z*z) - 9.802f;
 }
 /* ================= ISR ================= */
 void isr_twitch() {
