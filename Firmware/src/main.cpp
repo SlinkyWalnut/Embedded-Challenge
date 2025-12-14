@@ -3,21 +3,25 @@
 #include "Wire.h"
 #include <Adafruit_Sensor.h>
 #include <Adafruit_ADXL345_U.h>
+#include <math.h>
 
 #define ADXL345_REG_THRESH_ACT   0x24
 #define ADXL345_REG_ACT_INACT    0x27
 #define ADXL345_REG_INT_ENABLE   0x2E
 #define ADXL345_REG_INT_MAP      0x2F
 #define ADXL345_REG_INT_SOURCE   0x30
+
+#define SAMPLE_RATE_HZ     100
+#define SAMPLE_PERIOD_MS  10
+#define SAMPLE_COUNT      300   // 3 seconds * 100 Hz
+
+// -------- function prototypes --------
 void writeRegister(char reg, char value);
 byte readRegister(char reg);
 void isr_twitch();
 
-#define SAMPLE_RATE_HZ   100
-#define SAMPLE_PERIOD_MS 10
-#define SAMPLE_COUNT     300   // 3 seconds * 100 Hz
-
-uint16_t buffer[SAMPLE_COUNT];
+// -------- globals --------
+float magnitude[SAMPLE_COUNT];
 
 Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified(12345);
 
@@ -36,10 +40,10 @@ void setup() {
 #endif
 
   Serial.begin(9600);
-  Serial.println("Accelerometer Test\n");
+  Serial.println("Accelerometer magnitude capture\n");
 
   if (!accel.begin()) {
-    Serial.println("Ooops, no ADXL345 detected ... Check your wiring!");
+    Serial.println("No ADXL345 detected");
     while (1);
   }
 
@@ -48,14 +52,14 @@ void setup() {
 
   delay(500);
 
-  // Activity detection config
-  writeRegister(ADXL345_REG_THRESH_ACT, 20);   // threshold
-  writeRegister(ADXL345_REG_ACT_INACT, 0x70);  // enable XYZ activity
+  // Activity detection
+  writeRegister(ADXL345_REG_THRESH_ACT, 20);
+  writeRegister(ADXL345_REG_ACT_INACT, 0x70);
 
-  // Map all interrupts to INT1
+  // Map interrupts to INT1
   writeRegister(ADXL345_REG_INT_MAP, 0x00);
 
-  // Enable Activity interrupt only
+  // Enable Activity interrupt
   writeRegister(ADXL345_REG_INT_ENABLE, 0x10);
 
   pinMode(2, INPUT);
@@ -64,28 +68,25 @@ void setup() {
   // Clear pending interrupts
   readRegister(ADXL345_REG_INT_SOURCE);
 
-  Serial.println("Setup done. Waiting for motion...\n");
+  Serial.println("Waiting for motion...\n");
 }
 
 void loop() {
 
-  /* ---------- interrupt triggered ---------- */
+  /* ---------- interrupt trigger ---------- */
   if (motionDetected && !sampling) {
 
-    Serial.println(">> TWITCH DETECTED! Start 3s capture <<");
+    Serial.println(">> ACTIVITY detected, start 3s capture <<");
 
-    // Clear interrupt source
     readRegister(ADXL345_REG_INT_SOURCE);
-
     motionDetected = false;
 
-    // Init sampling state
     sampling = true;
     sampleIndex = 0;
     lastSampleTime = millis();
   }
 
-  /* ---------- sampling state ---------- */
+  /* ---------- sampling ---------- */
   if (sampling) {
     unsigned long now = millis();
 
@@ -94,20 +95,23 @@ void loop() {
 
       accel.getEvent(&event);
 
-      // 这里只存一个轴，示例用 X
-      // 你可以改成 struct / 三个 buffer
-      buffer[sampleIndex] = (int16_t)(event.acceleration.x * 1000); // m/s^2 → mg 量级
+      float x = event.acceleration.x;
+      float y = event.acceleration.y;
+      float z = event.acceleration.z;
+
+      // magnitude = sqrt(x^2 + y^2 + z^2)
+      magnitude[sampleIndex] = sqrt(x * x + y * y + z * z)-9.802;
 
       sampleIndex++;
 
       if (sampleIndex >= SAMPLE_COUNT) {
         sampling = false;
 
-        Serial.println(">> Capture finished <<");
-        Serial.println("Dump data:");
+        Serial.println(">> Capture finished (magnitude) <<");
 
+        // 示例：全部打印（你后面也可以直接关掉）
         for (int i = 0; i < SAMPLE_COUNT; i++) {
-          Serial.println(buffer[i]);
+          Serial.println(magnitude[i], 4);
         }
 
         Serial.println(">> Ready for next trigger <<\n");
@@ -116,7 +120,7 @@ void loop() {
   }
 }
 
-/* ---------- low-level I2C helpers ---------- */
+// -------- low-level I2C helpers --------
 
 void writeRegister(char reg, char value) {
   Wire.beginTransmission(0x53);
@@ -129,12 +133,11 @@ byte readRegister(char reg) {
   Wire.beginTransmission(0x53);
   Wire.write(reg);
   Wire.endTransmission();
-
   Wire.requestFrom(0x53, 1);
   return Wire.read();
 }
 
-/* ---------- ISR ---------- */
+// -------- ISR --------
 
 void isr_twitch() {
   motionDetected = true;
