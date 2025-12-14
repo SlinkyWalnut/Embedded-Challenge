@@ -44,7 +44,6 @@ void computeBandPercentagesFromFFT(float vReal[], int bins, float fs,
                                    float& tremor_perc, float& disc_perc);
 
 /* ================= Globals ================= */
-float magnitude[SAMPLE_COUNT];
 
 float vReal[FFT_SIZE];
 float vImag[FFT_SIZE];
@@ -126,22 +125,14 @@ void TakeSample() {
   if (now - lastSampleTime < SAMPLE_PERIOD_MS) return;
   lastSampleTime += SAMPLE_PERIOD_MS;
 
-  accel.getEvent(&event);
-
-  float x = event.acceleration.x;
-  float y = event.acceleration.y;
-  float z = event.acceleration.z;
-
-  magnitude[sampleIndex++] = sqrt(x*x + y*y + z*z) - 9.80665f;
-
+  sampleIndex++;
   if (sampleIndex >= SAMPLE_COUNT) {
     sampling = false;
 
     /* ---------- Prepare FFT input ---------- */
     for (int i = 0; i < FFT_SIZE; i++) {
-      if (i < SAMPLE_COUNT) vReal[i] = magnitude[i];
+      if (i < SAMPLE_COUNT) vReal[i] = getMagnitude();
       else vReal[i] = 0.0f;
-      vImag[i] = 0.0f;
     }
 
     /* ---------- FFT ---------- */
