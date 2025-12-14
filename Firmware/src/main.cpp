@@ -177,7 +177,9 @@ bool detectDiskinesiaFromFFT(float vReal[], int bins, float fs, float& peakFreq)
 
     if (vReal[i] > maxAmp) {
       maxAmp = vReal[i];
-      peakFreq = freq;
+    }
+    if(peak_freq < freq){
+      peak_freq = freq;
     }
   }
 
