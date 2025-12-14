@@ -48,13 +48,13 @@ void setup() {
     while (1);
   }
 
-  accel.setRange(ADXL345_RANGE_4_G);
-  accel.setDataRate(ADXL345_DATARATE_100_HZ);
+  accel.setRange(ADXL345_RANGE_2_G);
+  accel.setDataRate(ADXL345_DATARATE_50_HZ);
 
   delay(500);
 
   // Activity detection
-  writeRegister(ADXL345_REG_THRESH_ACT, 20);
+  writeRegister(ADXL345_REG_THRESH_ACT, 75);
   writeRegister(ADXL345_REG_ACT_INACT, 0x70);
 
   // Map interrupts to INT1
@@ -110,7 +110,7 @@ void loop() {
 
         Serial.println(">> Capture finished (magnitude) <<");
 
-        // 示例：全部打印（你后面也可以直接关掉）
+        // sample:print all
         for (int i = 0; i < SAMPLE_COUNT; i++) {
           Serial.println(magnitude[i], 4);
         }
