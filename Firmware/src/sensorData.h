@@ -4,7 +4,7 @@
 #ifndef ASENSOR_H
 #define ASENSOR_H
 
-void SetupSensor(Adafruit_ADXL345_Unified accel);
+void writeRegister(char reg, char value);
 
 void UpdateSensor();
 
