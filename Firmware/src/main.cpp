@@ -237,7 +237,7 @@ float getMagnitude(){
   float x = event.acceleration.x;
   float y = event.acceleration.y;
   float z = event.acceleration.z;
-  return sqrt(x*x + y*y + z*z) - 9.80665f
+  return sqrt(x*x + y*y + z*z) - 9.80665f;
 }
 /* ================= ISR ================= */
 void isr_twitch() {
