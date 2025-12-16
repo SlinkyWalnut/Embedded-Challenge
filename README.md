@@ -1,15 +1,10 @@
-Press start button to start reading
+Show magnitude graph on display
 
-Once start is pressed,
-
-Show Fourier magnitude graph on display
-Have reset graph buttons
-
-Give a warning popup when a symptom gets to a certain intenaity
-dismiss warnings with button
+Go to status page when a symptom is detected past the threshhold
+Show Symptom on status page
 
 Symptoms: 
     - fidgeting
     - tremors (shaking)
 
-Intensity will be shown on a graph(each one has their own)
+Intensity will be shown on a graph
