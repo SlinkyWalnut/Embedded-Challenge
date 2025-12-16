@@ -89,7 +89,10 @@ SensorData sensorData = {0.0, false, false, 0};
 /* ===================================================== */
 void setup() {
     // ... (setup remains the same)
-    Serial.begin(115200);
+    #ifndef ESP8266
+        while (!Serial);
+    #endif
+    Serial.begin(9600);
     delay(500);
     Serial.println("Starting embedded challenge firmware...");
     
@@ -141,8 +144,8 @@ void loop() {
             }
         }
     }
-    
-    if (!sampling && sampleIndex > 0) {
+    Serial.println(getMagnitude());
+    if (!sampling) {
         bool tremorDetected = Tremor();
         bool dyskinesiaDetected = diskinesia;
         
@@ -217,20 +220,7 @@ void TakeSample() {
     diskinesia = detectDiskinesiaFromFFT(peak_freq);
     insertToBuffer(detectTremorsFromFFT(peak_freq));
     
-    // REMOVED: computeBandPercentagesFromFFT(...)
 }
-
-/* ================= Feature functions ================= */
-
-// ... (All other feature functions remain the same)
-
-// REMOVED: computeBandPercentagesFromFFT is deleted here
-/*
-void computeBandPercentagesFromFFT(float vReal[], int bins, float fs,
-                                   float& tremor_perc, float& disc_perc) {
-// ... (code removed)
-}
-*/
 
 /* ================= Feature functions ================= */
 
@@ -295,6 +285,7 @@ float getMagnitude(){
     float x = event.acceleration.x;
     float y = event.acceleration.y;
     float z = event.acceleration.z;
+    Serial.print("X: "); Serial.print(x); Serial.print("\tY: "); Serial.print(y); Serial.print("\tZ: "); Serial.println(z);
     return sqrt(x*x + y*y + z*z) - 9.802f;
 }
 
