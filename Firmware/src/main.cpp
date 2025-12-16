@@ -24,7 +24,7 @@
 
 #define ADXL_INT_PIN 1
 
-/* ================= Function prototypes ================= */
+/* ================= Function Declarations/Prototypes ================= */
 void writeRegister(char reg, char value);
 byte readRegister(char reg);
 void isr_twitch();
@@ -51,8 +51,6 @@ bool sampling = false;
 /* Output features */
 bool  diskinesia  = false;
 float peak_freq   = 0.0f;
-// REMOVED: float tremor_perc = 0.0f;
-// REMOVED: float disc_perc   = 0.0f;
 
 unsigned long lastSampleTime = 0;
 int sampleIndex = 0;
@@ -62,7 +60,7 @@ bool TremorBuffer[3] = {false, false, false};
 int bufferPointer = 0;
 
 // Global variables for UI (declared as extern in TFT_UI_Helper.h)
-// ... (All UI globals remain)
+
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 Adafruit_TSC2007 ts = Adafruit_TSC2007();
 Screen currentScreen = SCREEN_HOME;
@@ -89,7 +87,6 @@ SensorData sensorData = {0.0, false, false, 0};
 
 /* ===================================================== */
 void setup() {
-    // ... (setup remains the same)
     #ifndef ESP8266
         while (!Serial);
     #endif
@@ -98,7 +95,7 @@ void setup() {
     Serial.println("Starting embedded challenge firmware...");
     
     initializeDisplay();
-    initializeTouch(); // Does nothing now
+    initializeTouch(); 
     drawHomeScreen();
     
     if (!accel.begin()) {
@@ -123,14 +120,14 @@ void setup() {
 
 /* ===================================================== */
 void loop() {
-    // ... (sampling logic remains the same)
+    // if motion is detected from interrupt, sets off workflow
     if (motionDetected && !sampling) {
         motionDetected = false;
         readRegister(ADXL345_REG_INT_SOURCE);
         sampling = true;
         lastSampleTime = millis();
     }
-    
+    // gets 3 sec buffer after there is a movement
     if (sampling) {
         unsigned long now = millis();
         if (now - lastSampleTime >= SAMPLE_PERIOD_MS) {
@@ -146,9 +143,10 @@ void loop() {
             }
         }
     }
-
+    // updates the graph so it looks real-time
     updateSensorData(getMagnitude(), Tremor(), diskinesia);
-    // Only update detection/graph data when not sampling
+
+    // Only update detection data when not sampling
     if (!sampling) {
         bool tremorDetected = Tremor();
         bool dyskinesiaDetected = diskinesia;
@@ -156,10 +154,6 @@ void loop() {
         // SIMPLIFIED MAGNITUDE CALCULATION
         // Use current acceleration magnitude as a simple value for the graph
         float combinedMagnitude = getMagnitude();
-        
-        // This is a minimal way to get a value for the graph. 
-        // A more accurate simple magnitude would be vReal[peak_bin] / 10.0f;
-        // For maximum flash savings, we simply reuse peak_freq as a placeholder.
         
         // Use max acceleration magnitude if needed, but for now, keep it minimal
         if (combinedMagnitude > 10.0f) combinedMagnitude = 10.0f; // Cap for graph scale
@@ -213,6 +207,8 @@ void loop() {
 }
 
 /* ===================================================== */
+
+// after samples array is filled, does fft calcs and checks for symptoms
 void TakeSample() {
     sampling = false;
     sampleIndex = 0;
@@ -243,10 +239,8 @@ float getPeakFrequency(float vReal[], int bins, float fs){
     
     for (int i = 1; i < bins; i++) {
         float freq = (i * fs) / FFT_SIZE;
-        if (3<freq && freq<5){
+        if ((3<freq && freq<5) || freq < 0.4){
             vReal[i]+=15;
-
-
         }
         if (vReal[i] > maxAmp) {
             maxAmp = vReal[i];
@@ -259,20 +253,25 @@ float getPeakFrequency(float vReal[], int bins, float fs){
     
 }
 
+// detects the diskenesia range
 bool detectDiskinesiaFromFFT(float peakFreq) {
     return (peakFreq >= 5.0f && peakFreq <= 7.0f);
 }
 
+// detects the tremor range
 bool detectTremorsFromFFT(float peakFreq){
     return (peakFreq >= 3.0f && peakFreq <= 5.0f);
 }
 
+// There is a buffer so that tremors only show up when 3 Tremor ranges occur in a row
+// This inserts most recent reading into array
 void insertToBuffer(bool recent){
     TremorBuffer[bufferPointer] = recent;
     bufferPointer++;
     bufferPointer %= 3;
 }
 
+// Checks if the last 3 detections are tremors
 bool Tremor(){
     for(int i = 0; i < 3; i++){
         if(TremorBuffer[i] == false){
@@ -284,6 +283,7 @@ bool Tremor(){
 
 
 /* ================= I2C helpers ================= */
+// used to set register settings
 void writeRegister(char reg, char value) {
     Wire.beginTransmission(0x53);
     Wire.write(reg);
@@ -291,6 +291,7 @@ void writeRegister(char reg, char value) {
     Wire.endTransmission();
 }
 
+// used when reading interrupt
 byte readRegister(char reg) {
     Wire.beginTransmission(0x53);
     Wire.write(reg);
@@ -299,6 +300,7 @@ byte readRegister(char reg) {
     return Wire.read();
 }
 
+// Gets magnitude of acceleration reading.
 float getMagnitude(){
     accel.getEvent(&event);
     
@@ -310,6 +312,7 @@ float getMagnitude(){
 }
 
 /* ================= ISR ================= */
+// goes off if a small shake occurs occurs
 void isr_twitch() {
     motionDetected = true;
     Serial.println("Motion detected (ISR)");
