@@ -1,5 +1,5 @@
-# UI Design Documentation
-
+# Original UI Design Documentation
+(Not really applicable anymore)
 ## Overview
 This document describes the User Interface (UI) design and implementation for the Embedded Challenge project. The UI is designed for a 2.4" TFT touchscreen display (320x240 pixels) running on an Adafruit Feather 32u4 with TFT FeatherWing V2.
 
