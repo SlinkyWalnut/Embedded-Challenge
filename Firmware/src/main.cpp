@@ -144,14 +144,13 @@ void loop() {
             }
         }
     }
-    Serial.println(getMagnitude());
-    if (!sampling) {
+    // if (!sampling) {
         bool tremorDetected = Tremor();
         bool dyskinesiaDetected = diskinesia;
         
         // SIMPLIFIED MAGNITUDE CALCULATION
         // Use the peak frequency's amplitude (from vReal[i]) as the magnitude
-        float combinedMagnitude = peak_freq; // Just use peak freq for a unique value
+        float combinedMagnitude = getMagnitude(); // Just use peak freq for a unique value
         
         // This is a minimal way to get a value for the graph. 
         // A more accurate simple magnitude would be vReal[peak_bin] / 10.0f;
@@ -171,7 +170,7 @@ void loop() {
         Serial.print(tremorDetected ? "YES" : "NO");
         Serial.print(" | Dyskinesia: ");
         Serial.println(dyskinesiaDetected ? "YES" : "NO");
-    }
+    // }
     
     // UI handling (now using simple timer toggle)
     if (newDataAvailable) {
@@ -285,7 +284,7 @@ float getMagnitude(){
     float x = event.acceleration.x;
     float y = event.acceleration.y;
     float z = event.acceleration.z;
-    Serial.print("X: "); Serial.print(x); Serial.print("\tY: "); Serial.print(y); Serial.print("\tZ: "); Serial.println(z);
+    // Serial.print("X: "); Serial.print(x); Serial.print("\tY: "); Serial.print(y); Serial.print("\tZ: "); Serial.println(z);
     return sqrt(x*x + y*y + z*z) - 9.802f;
 }
 
