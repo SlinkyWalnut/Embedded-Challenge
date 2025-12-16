@@ -15,7 +15,8 @@
 
 /* ================= Sampling config ================= */
 #define SAMPLE_PERIOD_MS  20
-#define SAMPLE_COUNT      150
+// Use same number of samples as FFT size to avoid buffer overflows
+#define SAMPLE_COUNT      FFT_SIZE
 
 /* ================= FFT config ================= */
 #define FFT_SIZE               128
@@ -63,7 +64,7 @@ int bufferPointer = 0;
 // Global variables for UI (declared as extern in TFT_UI_Helper.h)
 // ... (All UI globals remain)
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
-// Adafruit_TSC2007 ts = Adafruit_TSC2007(); // REMOVED: No longer needed with disabled touch
+Adafruit_TSC2007 ts = Adafruit_TSC2007();
 Screen currentScreen = SCREEN_HOME;
 bool graphScreenDrawn = false;
 unsigned long screenInactivityStart = 0;
@@ -127,7 +128,6 @@ void loop() {
         motionDetected = false;
         readRegister(ADXL345_REG_INT_SOURCE);
         sampling = true;
-        sampleIndex = 0;
         lastSampleTime = millis();
     }
     
@@ -141,16 +141,20 @@ void loop() {
             
             if (sampleIndex >= SAMPLE_COUNT) {
                 TakeSample();
+                Serial.print("Peak Freq:");
+                Serial.println(peak_freq);
             }
         }
     }
-    // if (!sampling) {
+
+    // Only update detection/graph data when not sampling
+    if (!sampling) {
         bool tremorDetected = Tremor();
         bool dyskinesiaDetected = diskinesia;
         
         // SIMPLIFIED MAGNITUDE CALCULATION
-        // Use the peak frequency's amplitude (from vReal[i]) as the magnitude
-        float combinedMagnitude = getMagnitude(); // Just use peak freq for a unique value
+        // Use current acceleration magnitude as a simple value for the graph
+        float combinedMagnitude = getMagnitude();
         
         // This is a minimal way to get a value for the graph. 
         // A more accurate simple magnitude would be vReal[peak_bin] / 10.0f;
@@ -161,16 +165,15 @@ void loop() {
         
         updateSensorData(combinedMagnitude, tremorDetected, dyskinesiaDetected);
         newDataAvailable = true;
-        sampleIndex = 0;
-        
+
         // Debug output removed percentages to match removal
-        Serial.print("Magnitude: ");
-        Serial.print(combinedMagnitude);
-        Serial.print(" | Tremor: ");
-        Serial.print(tremorDetected ? "YES" : "NO");
-        Serial.print(" | Dyskinesia: ");
-        Serial.println(dyskinesiaDetected ? "YES" : "NO");
-    // }
+        // Serial.print("Magnitude: ");
+        // Serial.print(combinedMagnitude);
+        // Serial.print(" | Tremor: ");
+        // Serial.print(tremorDetected ? "YES" : "NO");
+        // Serial.print(" | Dyskinesia: ");
+        // Serial.println(dyskinesiaDetected ? "YES" : "NO");
+    }
     
     // UI handling (now using simple timer toggle)
     if (newDataAvailable) {
@@ -189,8 +192,10 @@ void loop() {
             }
             break;
         case SCREEN_GRAPH:
-            if (!graphScreenDrawn || newDataAvailable) {
-                updateGraphScreen();
+            if (!graphScreenDrawn) {
+                updateGraphScreen();  // Initial draw
+            } else if (newDataAvailable) {
+                updateGraphScreen();  // Update when new data arrives
                 newDataAvailable = false;
             } else {
                 // For testing: update graph periodically even without new data
@@ -203,17 +208,25 @@ void loop() {
             break;
     }
     
-    delay(50);
+    delay(16);
 }
 
 /* ===================================================== */
 void TakeSample() {
     sampling = false;
-    
+    sampleIndex = 0;
     FFT.windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
     FFT.compute(FFT_FORWARD);
     FFT.complexToMagnitude();
-    
+    int mean = 0;
+    for(int i = 0; i < FFT_SIZE; i++) {
+        mean += vReal[i];
+    }
+    mean /= FFT_SIZE;
+    for(int i = 0; i < FFT_SIZE; i++) {
+        vReal[i] -= (mean/4);
+        
+    }
     peak_freq = getPeakFrequency(vReal, FFT_SIZE / 2,
                                  FFT_SAMPLING_FREQUENCY);
     diskinesia = detectDiskinesiaFromFFT(peak_freq);
@@ -229,13 +242,20 @@ float getPeakFrequency(float vReal[], int bins, float fs){
     
     for (int i = 1; i < bins; i++) {
         float freq = (i * fs) / FFT_SIZE;
-        
+        if (3<freq && freq<5){
+            vReal[i]+=15;
+
+
+        }
         if (vReal[i] > maxAmp) {
             maxAmp = vReal[i];
             peakFreq = freq;
         }
     }
+    Serial.print("maxAmp: ");
+    Serial.println(maxAmp);
     return peakFreq;
+    
 }
 
 bool detectDiskinesiaFromFFT(float peakFreq) {
@@ -291,4 +311,5 @@ float getMagnitude(){
 /* ================= ISR ================= */
 void isr_twitch() {
     motionDetected = true;
+    Serial.println("Motion detected (ISR)");
 }

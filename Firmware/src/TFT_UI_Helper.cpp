@@ -4,8 +4,6 @@
 #include <Wire.h>
 #include <Arduino.h>
 
-// Removed Adafruit_TSC2007 include and associated variables
-
 // Static variables for tracking last displayed values
 static float lastTremorIntensityDisplayed = -1.0;
 
@@ -69,14 +67,14 @@ void drawGraphScreen() {
     tft.print("Graph");
     
     // Home button at bottom left (simple text button)
-    tft.fillRect(20, 200, 100, 30, BLUE);
+    // Positioned below graph area (y_bottom is 200, so button at 210 to be safe)
+    tft.fillRect(20, 210, 100, 30, BLUE);
     tft.setTextSize(2);
     tft.setTextColor(WHITE);
-    tft.setCursor(35, 208);
+    tft.setCursor(35, 218);
     tft.print("Home");
     
-    // Graph area border
-    tft.drawRect(50, 50, 260, 150, WHITE);
+    // Note: Graph area border will be drawn by startGraph() after clearing
 }
 
 void updateGraphScreen() {
@@ -85,18 +83,19 @@ void updateGraphScreen() {
     extern void startGraph();
     
     if (!graphScreenDrawn) {
-        drawGraphScreen();
-        startGraph();
+        drawGraphScreen();  // Draw static elements (title, home button)
+        startGraph();       // Clear graph area and draw axes
         lastTremorIntensityDisplayed = -1.0;
         graphScreenDrawn = true;
+        return;  // Don't update graph on first draw, wait for next call
     }
     
     updateGraph();
     getComment();
     
-    // Update magnitude display
+    // Update magnitude display (positioned to not overlap with Home button)
     if (abs(sensorData.magnitude - lastTremorIntensityDisplayed) > 1.0) {
-        tft.fillRect(150, 210, 80, 20, BLACK); // Clear mag area
+        tft.fillRect(150, 210, 80, 20, BLACK); // Clear mag area (above Home button)
         tft.setTextSize(2);
         tft.setTextColor(BLUE);
         tft.setCursor(150, 210);
@@ -114,11 +113,12 @@ void updateSensorData(float magnitude, bool tremorDetected, bool dyskinesiaDetec
     sensorData.timestamp = millis();
 }
 
-// --- Simplified Touch/Navigation Logic ---
-// Initialize touch now does nothing.
+// --- Touch/Navigation Logic (tap-only, no swipe) ---
 void initializeTouch() {
-    // Disabled TSC2007 library initialization to save Flash
-    touchscreenAvailable = false;
+    // Initialize I2C for TSC2007
+    Wire.begin();
+    delay(10);
+    touchscreenAvailable = ts.begin();
 }
 
 void checkSensorDataChanges() {
@@ -137,22 +137,42 @@ void checkSensorDataChanges() {
 }
 
 void handleTouch() {
-    // Disabled all complex touch and swipe logic to save Flash
-    // We only process a simplified check for a button press (simulated)
-    // To implement a real button, you would need a physical button connected
-    
-    // For now, we use a simple timer to toggle screens for testing
-    static unsigned long lastToggleTime = 0;
-    if (millis() - lastToggleTime > 5000) { // Toggle screen every 5 seconds for testing
-        if (currentScreen == SCREEN_HOME) {
+    if (!touchscreenAvailable) return;
+
+    static unsigned long lastTouchRead = 0;
+    unsigned long now = millis();
+
+    // Simple cooldown to avoid processing the same touch multiple times
+    if (now - lastTouchRead < TOUCH_COOLDOWN_MS) {
+        return;
+    }
+
+    TS_Point p = ts.getPoint();
+
+    // No touch detected: many TSC2007 boards report 0/0 or 4095/4095 when idle
+    if ((p.x == 0 && p.y == 0) || (p.x == 4095 && p.y == 4095)) {
+        return;
+    }
+
+    lastTouchRead = now;
+
+    // Map raw touch to screen coordinates for rotation=3 (landscape)
+    int x = map(p.y, 0, 4095, tft.width(), 0);
+    int y = map(p.x, 0, 4095, 0, tft.height());
+
+    if (currentScreen == SCREEN_HOME) {
+        // Graph button rectangle: x 200-300, y 200-230
+        if (x >= 200 && x <= 300 && y >= 200 && y <= 230) {
             currentScreen = SCREEN_GRAPH;
-            drawGraphScreen();
-            graphScreenDrawn = false;
-        } else {
+            graphScreenDrawn = false;  // Force graph screen to initialize on next update
+        }
+    } else if (currentScreen == SCREEN_GRAPH) {
+        // Home button rectangle: x 20-120, y 210-239
+        if (x >= 20 && x <= 120 && y >= 210 && y <= 239) {
             currentScreen = SCREEN_HOME;
+            graphScreenDrawn = false;
             drawHomeScreen();
         }
-        lastToggleTime = millis();
     }
 }
 

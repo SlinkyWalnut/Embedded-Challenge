@@ -49,7 +49,7 @@ void initialize_g_screen (){
 }
 
 void initialize_graph_setup (){
-    draw_graph_axis();
+    draw_graph_axis();  // Draw both X and Y axes
 }
 
 void draw_graph_axis (){
