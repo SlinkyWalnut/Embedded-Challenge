@@ -147,6 +147,7 @@ void loop() {
         }
     }
 
+    updateSensorData(getMagnitude(), Tremor(), diskinesia);
     // Only update detection/graph data when not sampling
     if (!sampling) {
         bool tremorDetected = Tremor();
@@ -163,7 +164,7 @@ void loop() {
         // Use max acceleration magnitude if needed, but for now, keep it minimal
         if (combinedMagnitude > 10.0f) combinedMagnitude = 10.0f; // Cap for graph scale
         
-        updateSensorData(combinedMagnitude, tremorDetected, dyskinesiaDetected);
+        
         newDataAvailable = true;
 
         // Debug output removed percentages to match removal
