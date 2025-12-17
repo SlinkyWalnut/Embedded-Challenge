@@ -113,7 +113,7 @@ void getComment(){
     bool currentHigh = sensorData.dyskinesiaDetected || sensorData.tremorDetected;
     if (lastCommentInitialized && currentHigh == lastCommentHigh) return;
     
-    tft.fillRect(50, 200, 270, 40, BLACK);
+    //tft.fillRect(50, 200, 270, 40, BLACK);
     tft.setTextSize(2);
     if (currentHigh) {
         tft.setTextColor(RED);

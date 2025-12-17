@@ -35,16 +35,16 @@ void drawHomeScreen() {
 
 void updateHomeScreenStats() {
     // Only update the main status area (100, 80)
-    tft.fillRect(50, 80, 220, 100, BLACK); // Clear status area
+    tft.fillRect(50, 80, 250, 100, BLACK); // Clear status area
 
     tft.setTextSize(4);
     if (sensorData.tremorDetected || sensorData.dyskinesiaDetected) {
         tft.setTextColor(RED);
-        tft.setCursor(100, 100);
+        tft.setCursor(50, 100);
         if (sensorData.tremorDetected) {
-            tft.print("Tremor!");
+            tft.print("Tremors!");
         } else {
-            tft.print("Dyskinesi!");
+            tft.print("Dyskinesia!");
         }
     } else {
         tft.setTextColor(GREEN);
@@ -126,6 +126,9 @@ void checkSensorDataChanges() {
     static bool lastTremorState = false;
     static bool lastDyskState = false;
 
+    bool prevTremor = lastTremorState;
+    bool prevDysk = lastDyskState;
+
     if (sensorData.tremorDetected != lastTremorState) {
         if (sensorData.tremorDetected) tremorDataChanged = true;
         lastTremorState = sensorData.tremorDetected;
@@ -133,6 +136,16 @@ void checkSensorDataChanges() {
     if (sensorData.dyskinesiaDetected != lastDyskState) {
         if (sensorData.dyskinesiaDetected) dyskinesiaDataChanged = true;
         lastDyskState = sensorData.dyskinesiaDetected;
+    }
+
+    // If we are on the graph screen and a warning just appeared,
+    // automatically return to the home screen to show the warning clearly.
+    // bool prevWarning = prevTremor || prevDysk;
+    bool currWarning = sensorData.tremorDetected || sensorData.dyskinesiaDetected;
+    if (currentScreen == SCREEN_GRAPH && currWarning) {
+        currentScreen = SCREEN_HOME;
+        graphScreenDrawn = false;  // Force home redraw next frame
+        drawHomeScreen();          // Immediate visual feedback
     }
 }
 

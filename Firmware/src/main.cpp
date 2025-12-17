@@ -95,7 +95,7 @@ void setup() {
     Serial.println("Starting embedded challenge firmware...");
     
     initializeDisplay();
-    initializeTouch(); 
+    initializeTouch();
     drawHomeScreen();
     
     if (!accel.begin()) {
@@ -158,7 +158,7 @@ void loop() {
         // Use max acceleration magnitude if needed, but for now, keep it minimal
         if (combinedMagnitude > 10.0f) combinedMagnitude = 10.0f; // Cap for graph scale
         
-        
+        updateSensorData(combinedMagnitude, tremorDetected, dyskinesiaDetected);
         newDataAvailable = true;
 
         // Debug output removed percentages to match removal
@@ -221,7 +221,7 @@ void TakeSample() {
     }
     mean /= FFT_SIZE;
     for(int i = 0; i < FFT_SIZE; i++) {
-        vReal[i] -= (mean/4);
+        vReal[i] -= (3*mean/4);
         
     }
     peak_freq = getPeakFrequency(vReal, FFT_SIZE / 2,
@@ -239,8 +239,14 @@ float getPeakFrequency(float vReal[], int bins, float fs){
     
     for (int i = 1; i < bins; i++) {
         float freq = (i * fs) / FFT_SIZE;
-        if ((3<freq && freq<5) || freq < 0.4){
-            vReal[i]+=15;
+        if (freq<0.4 ){
+            vReal[i]+=5;
+        }
+        if (3<freq && freq<5 ){
+            vReal[i]*=1.15;
+        }
+        if (5<freq && freq<7 ){
+            vReal[i]*=0.95;
         }
         if (vReal[i] > maxAmp) {
             maxAmp = vReal[i];
