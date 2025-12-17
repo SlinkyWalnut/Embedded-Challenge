@@ -42,9 +42,9 @@ void updateHomeScreenStats() {
         tft.setTextColor(RED);
         tft.setCursor(100, 100);
         if (sensorData.tremorDetected) {
-            tft.print("T!");
+            tft.print("Tremor!");
         } else {
-            tft.print("D!");
+            tft.print("Dyskinesi!");
         }
     } else {
         tft.setTextColor(GREEN);
